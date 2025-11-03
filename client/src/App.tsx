@@ -3,25 +3,130 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import ChatPage from "@/pages/chat";
+import { useState, useEffect, useRef } from "react";
+import { DEFAULT_MODEL, DEFAULT_TEMPERATURE, getModelById } from "@/lib/models";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles } from "lucide-react";
+import { getSettings, saveSettings } from "@/lib/storage";
+import { Conversation } from "@shared/schema";
 
-function Router() {
+function Router({
+  selectedModel,
+  temperature,
+  chatKey,
+  loadedConversation,
+  onConversationUpdate,
+}: {
+  selectedModel: string;
+  temperature: number;
+  chatKey: number;
+  loadedConversation: Conversation | null;
+  onConversationUpdate: () => void;
+}) {
   return (
     <Switch>
-      {/* Add pages below */}
-      {/* <Route path="/" component={Home}/> */}
-      {/* Fallback to 404 */}
-      <Route component={NotFound} />
+      <Route path="/">
+        <ChatPage 
+          selectedModel={selectedModel} 
+          temperature={temperature} 
+          key={chatKey} 
+          loadedConversation={loadedConversation}
+          onConversationUpdate={onConversationUpdate}
+        />
+      </Route>
     </Switch>
   );
 }
 
 function App() {
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [temperature, setTemperature] = useState(DEFAULT_TEMPERATURE);
+  const [chatKey, setChatKey] = useState(0);
+  const [loadedConversation, setLoadedConversation] = useState<Conversation | null>(null);
+  const [refreshSidebar, setRefreshSidebar] = useState(0);
+
+  useEffect(() => {
+    const settings = getSettings();
+    if (settings) {
+      setSelectedModel(settings.selectedModel);
+      setTemperature(settings.temperature);
+    }
+  }, []);
+
+  useEffect(() => {
+    saveSettings({ selectedModel, temperature });
+  }, [selectedModel, temperature]);
+
+  const handleNewChat = () => {
+    setLoadedConversation(null);
+    setChatKey((prev) => prev + 1);
+  };
+
+  const handleLoadConversation = (conversation: Conversation) => {
+    setLoadedConversation(conversation);
+    setSelectedModel(conversation.model);
+    setTemperature(conversation.temperature);
+    setChatKey((prev) => prev + 1);
+  };
+
+  const handleModelSelect = (modelId: string) => {
+    setSelectedModel(modelId);
+  };
+
+  const handleConversationUpdate = () => {
+    setRefreshSidebar((prev) => prev + 1);
+  };
+
+  const currentModel = getModelById(selectedModel);
+
+  const style = {
+    "--sidebar-width": "20rem",
+    "--sidebar-width-icon": "4rem",
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <SidebarProvider style={style as React.CSSProperties}>
+          <div className="flex h-screen w-full">
+            <AppSidebar
+              selectedModel={selectedModel}
+              onModelSelect={handleModelSelect}
+              temperature={temperature}
+              onTemperatureChange={setTemperature}
+              onNewChat={handleNewChat}
+              onLoadConversation={handleLoadConversation}
+              refreshTrigger={refreshSidebar}
+            />
+            <div className="flex flex-col flex-1">
+              <header className="flex items-center justify-between gap-4 px-6 py-3 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    <h1 className="text-xl font-semibold">Puter Chat</h1>
+                  </div>
+                </div>
+                <Badge variant="secondary" className="px-3 py-1" data-testid="badge-current-model">
+                  {currentModel?.name || selectedModel}
+                </Badge>
+              </header>
+              <main className="flex-1 overflow-hidden">
+                <Router
+                  selectedModel={selectedModel}
+                  temperature={temperature}
+                  chatKey={chatKey}
+                  loadedConversation={loadedConversation}
+                  onConversationUpdate={handleConversationUpdate}
+                />
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
         <Toaster />
-        <Router />
       </TooltipProvider>
     </QueryClientProvider>
   );

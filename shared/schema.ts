@@ -1,18 +1,43 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+// Chat message types
+export const messageSchema = z.object({
+  id: z.string(),
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.string(),
+  timestamp: z.number(),
+  model: z.string().optional(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export type Message = z.infer<typeof messageSchema>;
+
+// Conversation types
+export const conversationSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  messages: z.array(messageSchema),
+  model: z.string(),
+  temperature: z.number(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export type Conversation = z.infer<typeof conversationSchema>;
+
+// Model category types
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  category: string;
+  supportsVision?: boolean;
+}
+
+// Settings types
+export const settingsSchema = z.object({
+  temperature: z.number().min(0).max(2),
+  stream: z.boolean(),
+  testMode: z.boolean(),
+});
+
+export type Settings = z.infer<typeof settingsSchema>;
