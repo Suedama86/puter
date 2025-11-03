@@ -18,6 +18,8 @@ export const conversationSchema = z.object({
   messages: z.array(messageSchema),
   model: z.string(),
   temperature: z.number(),
+  systemPrompt: z.string().optional(),
+  presetId: z.string().optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });
@@ -31,6 +33,16 @@ export interface AIModel {
   provider: string;
   category: string;
   supportsVision?: boolean;
+}
+
+// AI Profile/Preset types
+export interface AIPreset {
+  id: string;
+  name: string;
+  description: string;
+  modelId: string;
+  temperature?: number;
+  systemPrompt: string;
 }
 
 // Settings types

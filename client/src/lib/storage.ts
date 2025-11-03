@@ -7,6 +7,8 @@ const SETTINGS_KEY = "puter-chat-settings";
 export interface ChatSettings {
   selectedModel: string;
   temperature: number;
+  systemPrompt?: string;
+  presetId?: string;
 }
 
 export function saveConversation(conversation: Conversation): void {
@@ -54,6 +56,8 @@ export function deleteConversation(id: string): void {
 export function createConversation(
   model: string,
   temperature: number,
+  systemPrompt?: string,
+  presetId?: string,
   initialMessage?: Message
 ): Conversation {
   const conversation: Conversation = {
@@ -64,6 +68,8 @@ export function createConversation(
     messages: initialMessage ? [initialMessage] : [],
     model,
     temperature,
+    systemPrompt,
+    presetId,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

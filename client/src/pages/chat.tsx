@@ -28,11 +28,13 @@ declare global {
 interface ChatPageProps {
   selectedModel: string;
   temperature: number;
+  systemPrompt: string;
+  presetId: string;
   loadedConversation?: Conversation | null;
   onConversationUpdate?: () => void;
 }
 
-export default function ChatPage({ selectedModel, temperature, loadedConversation, onConversationUpdate }: ChatPageProps) {
+export default function ChatPage({ selectedModel, temperature, systemPrompt, presetId, loadedConversation, onConversationUpdate }: ChatPageProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
@@ -46,7 +48,7 @@ export default function ChatPage({ selectedModel, temperature, loadedConversatio
       setCurrentConversation(loadedConversation);
       setMessages(loadedConversation.messages);
     } else {
-      const newConversation = createConversation(selectedModel, temperature);
+      const newConversation = createConversation(selectedModel, temperature, systemPrompt, presetId);
       setCurrentConversation(newConversation);
       setMessages([]);
     }
@@ -67,6 +69,8 @@ export default function ChatPage({ selectedModel, temperature, loadedConversatio
         messages,
         model: selectedModel,
         temperature,
+        systemPrompt,
+        presetId,
         updatedAt: Date.now(),
         title: messages[0]?.content.substring(0, 50) + (messages[0]?.content.length > 50 ? "..." : "") || "Ny konversation",
       };
@@ -74,7 +78,7 @@ export default function ChatPage({ selectedModel, temperature, loadedConversatio
       setCurrentConversation(updatedConversation);
       onConversationUpdate?.();
     }
-  }, [messages, selectedModel, temperature]);
+  }, [messages, selectedModel, temperature, systemPrompt, presetId]);
 
   const handleSend = async (content: string) => {
     const userMessage: Message = {
@@ -88,13 +92,22 @@ export default function ChatPage({ selectedModel, temperature, loadedConversatio
     setIsStreaming(true);
     setStreamingContent("");
 
-    const conversationHistory = [
+    const conversationHistory: Array<{ role: string; content: string }> = [];
+    
+    if (systemPrompt) {
+      conversationHistory.push({
+        role: "system",
+        content: systemPrompt,
+      });
+    }
+    
+    conversationHistory.push(
       ...messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
       })),
-      { role: "user", content },
-    ];
+      { role: "user", content }
+    );
 
     try {
       abortControllerRef.current = new AbortController();

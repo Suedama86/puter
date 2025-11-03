@@ -16,12 +16,16 @@ import { Conversation } from "@shared/schema";
 function Router({
   selectedModel,
   temperature,
+  systemPrompt,
+  presetId,
   chatKey,
   loadedConversation,
   onConversationUpdate,
 }: {
   selectedModel: string;
   temperature: number;
+  systemPrompt: string;
+  presetId: string;
   chatKey: number;
   loadedConversation: Conversation | null;
   onConversationUpdate: () => void;
@@ -31,7 +35,9 @@ function Router({
       <Route path="/">
         <ChatPage 
           selectedModel={selectedModel} 
-          temperature={temperature} 
+          temperature={temperature}
+          systemPrompt={systemPrompt}
+          presetId={presetId}
           key={chatKey} 
           loadedConversation={loadedConversation}
           onConversationUpdate={onConversationUpdate}
@@ -44,6 +50,8 @@ function Router({
 function App() {
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   const [temperature, setTemperature] = useState(DEFAULT_TEMPERATURE);
+  const [systemPrompt, setSystemPrompt] = useState<string>("");
+  const [presetId, setPresetId] = useState<string>("");
   const [chatKey, setChatKey] = useState(0);
   const [loadedConversation, setLoadedConversation] = useState<Conversation | null>(null);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
@@ -53,12 +61,14 @@ function App() {
     if (settings) {
       setSelectedModel(settings.selectedModel);
       setTemperature(settings.temperature);
+      setSystemPrompt(settings.systemPrompt || "");
+      setPresetId(settings.presetId || "");
     }
   }, []);
 
   useEffect(() => {
-    saveSettings({ selectedModel, temperature });
-  }, [selectedModel, temperature]);
+    saveSettings({ selectedModel, temperature, systemPrompt, presetId });
+  }, [selectedModel, temperature, systemPrompt, presetId]);
 
   const handleNewChat = () => {
     setLoadedConversation(null);
@@ -69,6 +79,8 @@ function App() {
     setLoadedConversation(conversation);
     setSelectedModel(conversation.model);
     setTemperature(conversation.temperature);
+    setSystemPrompt(conversation.systemPrompt || "");
+    setPresetId(conversation.presetId || "");
     setChatKey((prev) => prev + 1);
   };
 
@@ -97,6 +109,10 @@ function App() {
               onModelSelect={handleModelSelect}
               temperature={temperature}
               onTemperatureChange={setTemperature}
+              systemPrompt={systemPrompt}
+              onSystemPromptChange={setSystemPrompt}
+              presetId={presetId}
+              onPresetChange={setPresetId}
               onNewChat={handleNewChat}
               onLoadConversation={handleLoadConversation}
               refreshTrigger={refreshSidebar}
@@ -118,6 +134,8 @@ function App() {
                 <Router
                   selectedModel={selectedModel}
                   temperature={temperature}
+                  systemPrompt={systemPrompt}
+                  presetId={presetId}
                   chatKey={chatKey}
                   loadedConversation={loadedConversation}
                   onConversationUpdate={handleConversationUpdate}

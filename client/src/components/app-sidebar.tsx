@@ -13,12 +13,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { MODEL_CATEGORIES, getModelsByCategory } from "@/lib/models";
+import { MODEL_CATEGORIES, getModelsByCategory, AI_PRESETS, getPresetById } from "@/lib/models";
 import { useState, useEffect } from "react";
 import { getConversations, deleteConversation } from "@/lib/storage";
 import { Conversation } from "@shared/schema";
@@ -28,6 +30,10 @@ interface AppSidebarProps {
   onModelSelect: (modelId: string) => void;
   temperature: number;
   onTemperatureChange: (temp: number) => void;
+  systemPrompt: string;
+  onSystemPromptChange: (prompt: string) => void;
+  presetId: string;
+  onPresetChange: (id: string) => void;
   onNewChat: () => void;
   onLoadConversation?: (conversation: Conversation) => void;
   refreshTrigger?: number;
@@ -38,6 +44,10 @@ export function AppSidebar({
   onModelSelect,
   temperature,
   onTemperatureChange,
+  systemPrompt,
+  onSystemPromptChange,
+  presetId,
+  onPresetChange,
   onNewChat,
   onLoadConversation,
   refreshTrigger,
@@ -46,6 +56,24 @@ export function AppSidebar({
   const [openCategories, setOpenCategories] = useState<string[]>(["OpenAI"]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
+  const [showSystemPrompt, setShowSystemPrompt] = useState(false);
+
+  const handlePresetSelect = (id: string) => {
+    if (id === "none") {
+      onPresetChange("");
+      return;
+    }
+    const preset = getPresetById(id);
+    if (preset) {
+      onPresetChange(id);
+      onModelSelect(preset.modelId);
+      if (preset.temperature !== undefined) {
+        onTemperatureChange(preset.temperature);
+      }
+      onSystemPromptChange(preset.systemPrompt);
+    }
+  };
 
   useEffect(() => {
     loadConversations();
@@ -213,6 +241,63 @@ export function AppSidebar({
               })}
             </div>
           </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <Collapsible open={showPresets} onOpenChange={setShowPresets}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between px-4 h-9 hover-elevate"
+              >
+                <span className="text-sm font-medium">AI-profiler</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${showPresets ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pt-2">
+              <Select value={presetId || "none"} onValueChange={handlePresetSelect}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Välj profil" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Ingen profil</SelectItem>
+                  {AI_PRESETS.map((preset) => (
+                    <SelectItem key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {presetId && getPresetById(presetId) && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {getPresetById(presetId)?.description}
+                </p>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <Collapsible open={showSystemPrompt} onOpenChange={setShowSystemPrompt}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between px-4 h-9 hover-elevate"
+              >
+                <span className="text-sm font-medium">Systeminstruktioner</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${showSystemPrompt ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pt-2">
+              <Textarea
+                value={systemPrompt}
+                onChange={(e) => onSystemPromptChange(e.target.value)}
+                placeholder="Anpassade instruktioner för AI:n..."
+                className="min-h-24 text-sm resize-none"
+                data-testid="textarea-systemprompt"
+              />
+            </CollapsibleContent>
+          </Collapsible>
         </SidebarGroup>
 
         <SidebarGroup className="mt-auto">
