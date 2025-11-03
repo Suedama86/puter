@@ -1,4 +1,6 @@
 {
+  "engines": {
+    "node": "20.x"
   "name": "rest-express",
   "version": "1.0.0",
   "type": "module",
