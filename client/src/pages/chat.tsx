@@ -13,7 +13,7 @@ declare global {
     puter: {
       ai: {
         chat: (
-          prompt: string | Message[],
+          prompt: string | Array<{ role: string; content: string }>,
           options?: {
             model?: string;
             temperature?: number;
@@ -99,11 +99,33 @@ export default function ChatPage({ selectedModel, temperature, loadedConversatio
     try {
       abortControllerRef.current = new AbortController();
 
-      const response = await window.puter.ai.chat(conversationHistory, {
+      const chatOptions: {
+        model: string;
+        temperature?: number;
+        stream: boolean;
+      } = {
         model: selectedModel,
-        temperature,
         stream: true,
-      });
+      };
+
+      if (temperature !== 1) {
+        chatOptions.temperature = temperature;
+      }
+
+      let response;
+      try {
+        response = await window.puter.ai.chat(conversationHistory, chatOptions);
+      } catch (err: any) {
+        if (err?.error?.message?.includes('temperature')) {
+          const fallbackOptions = {
+            model: selectedModel,
+            stream: true,
+          };
+          response = await window.puter.ai.chat(conversationHistory, fallbackOptions);
+        } else {
+          throw err;
+        }
+      }
 
       let fullContent = "";
 
